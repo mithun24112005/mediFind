@@ -23,7 +23,7 @@ export const findPharmaciesNearby = async (medicine_name, latitude, longitude) =
           distanceField: "distance_km",
           spherical: true,
           query: { pharmacy_id: { $in: pharmacyIds } },
-          maxDistance: 10000 // 10 km radius
+          maxDistance: 20000 // 10 km radius
         }
       },
       {
