@@ -6,10 +6,11 @@ const sessionSchema = new mongoose.Schema({
     required: true, 
     unique: true 
   },
-  search_input: {
+   search_input: {
     medicine_name: { 
       type: String, 
-      required: true 
+      required: false,     // ✅ not required
+      default: ""          // ✅ safe default
     }
   },
   user_location: {
