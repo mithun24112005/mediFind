@@ -100,12 +100,28 @@ export const uploadMedicineCSV = async (req, res) => {
   try {
     const medicines = [];
 
+    // 👇 Pharmacy ID can come from body or query (from frontend)
+    const pharmacy_id = req.body.pharmacy_id || req.query.pharmacy_id;
+
+    if (!pharmacy_id) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: "Missing pharmacy_id" });
+    }
+
+    // ✅ Verify pharmacy exists
+    const pharmacy = await Pharmacy.findOne({ pharmacy_id });
+    if (!pharmacy) {
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ message: "Pharmacy not found" });
+    }
+
+    // ✅ Parse CSV file
     await new Promise((resolve, reject) => {
       fs.createReadStream(req.file.path)
         .pipe(csv())
         .on("data", (row) => {
           medicines.push({
-            pharmacy_id: row.pharmacy_id,
+            pharmacy_id, // 👈 Attach the logged-in pharmacy ID
             medicine_name: row.medicine_name,
             brand_name: row.brand_name || "",
             price: parseFloat(row.price),
@@ -117,13 +133,13 @@ export const uploadMedicineCSV = async (req, res) => {
         .on("error", reject);
     });
 
+    fs.unlinkSync(req.file.path); // remove temp file
+
     if (!medicines.length) {
-      fs.unlinkSync(req.file.path);
       return res.status(400).json({ message: "Empty CSV file" });
     }
 
     await Medicine.insertMany(medicines);
-    fs.unlinkSync(req.file.path); // clean temp file
 
     res.status(201).json({
       message: "CSV uploaded successfully",
@@ -134,4 +150,5 @@ export const uploadMedicineCSV = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
