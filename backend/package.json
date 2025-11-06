@@ -25,5 +25,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.3",
     "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.28.5",
+    "jest": "^30.2.0"
   }
 }
