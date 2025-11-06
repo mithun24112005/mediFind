@@ -2,52 +2,60 @@ import Pharmacy from "../models/pharma.model.js";
 import Medicine from "../models/medicine.model.js";
 
 export const findPharmaciesNearby = async (medicine_name, latitude, longitude) => {
-  // 1️⃣ Find all pharmacies that have this medicine in stock
-  const medicines = await Medicine.find({
-    medicine_name: { $regex: medicine_name, $options: "i" },
-    stock: { $gt: 0 },
-    expiry_date: { $gte: new Date() }
-  });
+  try {
+    // 1️⃣ Find all medicines that match the search term and are valid
+    const medicines = await Medicine.find({
+      medicine_name: { $regex: medicine_name, $options: "i" },
+      stock: { $gt: 0 },
+      expiry_date: { $gte: new Date() }
+    });
 
-  // If no stores have it
-  if (!medicines.length) return [];
+    if (!medicines.length) return [];
 
-  // 2️⃣ Get all unique pharmacy IDs from the medicines
-  const pharmacyIds = medicines.map(m => m.pharmacy_id);
+    // 2️⃣ Extract pharmacy IDs
+    const pharmacyIds = medicines.map(m => m.pharmacy_id);
 
-  // 3️⃣ Fetch those pharmacies and calculate distance from user
-  const pharmacies = await Pharmacy.aggregate([
-    {
-      $geoNear: {
-        near: { type: "Point", coordinates: [longitude, latitude] },
-        distanceField: "distance_km",
-        spherical: true,
-        query: { pharmacy_id: { $in: pharmacyIds } }
+    // 3️⃣ Find nearby pharmacies that have those IDs
+    const pharmacies = await Pharmacy.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance_km",
+          spherical: true,
+          query: { pharmacy_id: { $in: pharmacyIds } },
+          maxDistance: 10000 // 10 km radius
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          pharmacy_id: 1,
+          name: 1,
+          distance_km: 1,
+          "address.city": 1,
+          "address.state": 1
+        }
       }
-    },
-    {
-      $project: {
-        _id: 0,
-        pharmacy_id: 1,
-        name: 1,
-        distance_km: 1,
-        "address.city": 1,
-        "address.state": 1
-      }
-    }
-  ]);
+    ]);
 
-  // 4️⃣ Combine pharmacy info with medicine info
-  const results = pharmacies.map(pharmacy => {
-    const med = medicines.find(m => m.pharmacy_id === pharmacy.pharmacy_id);
-    return {
-      ...pharmacy,
-      price: med?.price || null,
-      stock: med?.stock || null,
-      expiry_date: med?.expiry_date || null
-    };
-  });
+    // 4️⃣ Merge pharmacy + medicine data
+    const results = pharmacies.map(pharma => {
+      const med = medicines.find(m => m.pharmacy_id === pharma.pharmacy_id);
+      return {
+        pharmacy_id: pharma.pharmacy_id,
+        name: pharma.name,
+        distance_km: (pharma.distance_km / 1000).toFixed(2),
+        price: med?.price || 0,
+        stock: med?.stock || 0,
+        expiry_date: med?.expiry_date,
+        city: pharma.address.city,
+        state: pharma.address.state
+      };
+    });
 
-  return results;
+    return results;
+  } catch (err) {
+    console.error("Error in findPharmaciesNearby:", err);
+    return [];
+  }
 };
-
