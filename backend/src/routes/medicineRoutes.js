@@ -16,7 +16,6 @@ router.post("/add", addMedicine);
 router.put("/:pharmacy_id/:medicine_name", updateMedicine);
 router.get("/:pharmacy_id", getPharmacyStock);
 router.delete("/:pharmacy_id/:medicine_name", deleteMedicine);
-
 // CSV upload
 router.post("/upload_csv", upload.single("file"), uploadMedicineCSV);
 

@@ -1,15 +1,18 @@
-require('dotenv').config({ path: __dirname + '/.env' });
+import dotenv from "dotenv";
+import app from "./src/app.js";
+import connectDB from "./src/db/db.js";
 
-const app = require('./src/app');
-const connectDB = require('./src/db/db');
+dotenv.config({ path: new URL(".env", import.meta.url) });
 
 const PORT = process.env.PORT || 3000;
 
 // connect DB first, then start server
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Failed to connect to DB:", err.message);
   });
-}).catch((err) => {
-  console.error("❌ Failed to connect to DB:", err.message);
-});

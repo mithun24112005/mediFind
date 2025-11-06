@@ -1,5 +1,6 @@
 import Pharmacy from "../models/pharma.model.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // 🏪 Register a new pharmacy
 export const registerPharmacy = async (req, res) => {
@@ -36,7 +37,10 @@ export const registerPharmacy = async (req, res) => {
     });
 
     await pharmacy.save();
-    res.status(201).json({ message: "Pharmacy registered successfully", pharmacy });
+    res.status(201).json({
+      message: "Pharmacy registered successfully",
+      pharmacy
+    });
 
   } catch (error) {
     console.error("Error registering pharmacy:", error);
@@ -57,7 +61,30 @@ export const loginPharmacy = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    res.status(200).json({ message: "Login successful", pharmacy_id: pharmacy.pharmacy_id });
+    // ✅ Create JWT token
+    const token = jwt.sign(
+      {
+        pharmacy_id: pharmacy.pharmacy_id,
+        email: pharmacy.email
+      },
+      process.env.JWT_SECRET || "supersecretkey",
+      { expiresIn: "1d" }
+    );
+
+    // ✅ Set cookie
+    res.cookie("pharmacy_token", token, {
+      httpOnly: true,      // prevents JavaScript access
+      secure: false,       // set true if using HTTPS in production
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      pharmacy_id: pharmacy.pharmacy_id,
+      email: pharmacy.email
+    });
+
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -90,7 +117,10 @@ export const updatePharmacy = async (req, res) => {
     if (!updatedPharmacy)
       return res.status(404).json({ message: "Pharmacy not found" });
 
-    res.status(200).json({ message: "Pharmacy updated", updatedPharmacy });
+    res.status(200).json({
+      message: "Pharmacy updated",
+      updatedPharmacy
+    });
   } catch (error) {
     console.error("Error updating pharmacy:", error);
     res.status(500).json({ message: "Internal Server Error" });
