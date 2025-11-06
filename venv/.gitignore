@@ -1,0 +1,65 @@
+# =========================================
+# Python & Flask Project .gitignore
+# =========================================
+
+# --- Python cache and compiled files ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual environments ---
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+
+# --- Jupyter Notebook checkpoints ---
+.ipynb_checkpoints/
+
+# --- Flask / backend logs and temp files ---
+instance/
+*.log
+*.pid
+*.sqlite3
+
+# --- Model files (optional, uncomment if you store trained models) ---
+# *.h5
+# *.pkl
+# *.joblib
+# *.pt
+
+# --- Build & distribution folders ---
+build/
+dist/
+*.egg-info/
+
+# --- OS-specific files ---
+.DS_Store
+Thumbs.db
+
+# --- VS Code / IDE settings ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Environment & dependency files ---
+.env
+.env.local
+.env.*.local
+
+# --- Temporary datasets or output folders ---
+__output__/
+data/
+datasets/
+tmp/
+temp/
+Lib/
+Scripts/
+
+# --- Other custom ignores (optional) ---
+# Add your own paths below if you have large local-only files
+# e.g., 
+# pharmacy_records/
+
