@@ -4,6 +4,8 @@ import {
   Search,
   TrendingUp,
   Pill,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -19,8 +21,9 @@ export function UserInterface() {
   const [showResults, setShowResults] = useState(false);
   const [pharmacies, setPharmacies] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // 🧠 Main search logic
+  // 🔍 Main search function
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       alert("Please enter a medicine name");
@@ -100,6 +103,57 @@ export function UserInterface() {
     }
   };
 
+  // 📸 OCR Upload (Prescription)
+  const handleUploadPrescription = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      setIsUploading(true);
+
+      try {
+        const res = await fetch("http://localhost:3000/api/ocr/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        console.log("🧠 OCR Result:", data);
+
+        if (data.text) {
+          // Extract a probable medicine name from the text
+          const probableMedicine = data.text
+            .split("\n")
+            .map((line: string) => line.trim())
+            .find((line: string) => line.length > 3); // ignore short junk lines
+
+          if (probableMedicine) {
+            setSearchQuery(probableMedicine);
+            alert(`🧠 Detected medicine: ${probableMedicine}`);
+          } else {
+            alert("No recognizable medicine name found in the prescription.");
+          }
+        } else {
+          alert("OCR could not extract any text from the image.");
+        }
+      } catch (err) {
+        console.error("❌ OCR upload failed:", err);
+        alert("Error while reading the prescription. Try again.");
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    input.click();
+  };
+
   return (
     <div className="min-h-screen">
       {/* Navbar */}
@@ -125,19 +179,39 @@ export function UserInterface() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
-                  placeholder="Enter medicine name (e.g., Paracetamol 500mg)"
+                  placeholder="Enter medicine name (or upload prescription)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="pl-10 h-12 border-emerald-200 focus:border-emerald-500"
                 />
               </div>
+
               <Button
                 onClick={handleSearch}
+                disabled={isSearching}
                 className="h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
               >
-                <Search className="h-5 w-5 mr-2" />
+                {isSearching ? (
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                ) : (
+                  <Search className="h-5 w-5 mr-2" />
+                )}
                 Search
+              </Button>
+
+              <Button
+                onClick={handleUploadPrescription}
+                disabled={isUploading}
+                variant="outline"
+                className="h-12 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-5 w-5 mr-2" />
+                )}
+                {isUploading ? "Processing..." : "Upload Prescription"}
               </Button>
             </div>
           </CardContent>

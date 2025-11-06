@@ -24,7 +24,8 @@
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.3",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.5",
