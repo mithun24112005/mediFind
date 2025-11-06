@@ -1,30 +1,22 @@
 import Session from "../models/session.model.js";
-import Pharmacy from "../models/pharma.model.js";
-import Medicine from "../models/medicine.model.js";
-import { findPharmaciesNearby } from "../utils/searchHelper.js";
 
-export const searchMedicine = async (req, res) => {
+export const updateSession = async (req, res) => {
   try {
-    const { medicine_name, latitude, longitude } = req.body;
-    const session = req.session;
+    const { session_id, medicine_name, latitude, longitude } = req.body;
 
-    // 🧠 Update session
-    session.search_input = { medicine_name };
-    session.user_location = { type: "Point", coordinates: [longitude, latitude] };
-    session.timestamp = new Date();
-    await session.save();
+    const session = await Session.findOneAndUpdate(
+      { session_id },
+      {
+        search_input: { medicine_name },
+        user_location: { type: "Point", coordinates: [longitude, latitude] },
+        timestamp: new Date()
+      },
+      { upsert: true, new: true }
+    );
 
-    // 🏥 Fetch pharmacies that have the medicine
-    const results = await findPharmaciesNearby(medicine_name, latitude, longitude);
-
-    res.json({
-      message: "Search completed",
-      medicine_name,
-      pharmacies: results
-    });
-
+    res.json({ message: "Session updated", session });
   } catch (error) {
-    console.error("Error in searchMedicine:", error);
+    console.error("Error updating session:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
