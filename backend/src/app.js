@@ -7,6 +7,7 @@ import medicineRoutes from "./routes/medicineRoutes.js";
 import pharmacyRoutes from "./routes/pharmacyRoutes.js";
 import searchRoutes from "./routes/searchRoutes.js";
 import ocrRoutes from "./routes/ocrRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 
 
@@ -34,5 +35,6 @@ app.use("/api/pharmacy", pharmacyRoutes);
 app.use("/api/medicine", medicineRoutes);
 app.use("/api", searchRoutes);
 app.use("/api/ocr", ocrRoutes);
+app.use("/api/ai", aiRoutes);
 
 export default app;
