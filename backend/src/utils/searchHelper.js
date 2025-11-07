@@ -7,13 +7,13 @@ export const findPharmaciesNearby = async (medicine_name, latitude, longitude) =
     const medicines = await Medicine.find({
       medicine_name: { $regex: medicine_name, $options: "i" },
       stock: { $gt: 0 },
-      expiry_date: { $gte: new Date() }
+      expiry_date: { $gte: new Date() },
     });
 
     if (!medicines.length) return [];
 
     // 2️⃣ Extract pharmacy IDs
-    const pharmacyIds = medicines.map(m => m.pharmacy_id);
+    const pharmacyIds = medicines.map((m) => m.pharmacy_id);
 
     // 3️⃣ Find nearby pharmacies that have those IDs
     const pharmacies = await Pharmacy.aggregate([
@@ -23,8 +23,8 @@ export const findPharmaciesNearby = async (medicine_name, latitude, longitude) =
           distanceField: "distance_km",
           spherical: true,
           query: { pharmacy_id: { $in: pharmacyIds } },
-          maxDistance: 20000 // 10 km radius
-        }
+          maxDistance: 20000, // 20 km radius
+        },
       },
       {
         $project: {
@@ -32,15 +32,16 @@ export const findPharmaciesNearby = async (medicine_name, latitude, longitude) =
           pharmacy_id: 1,
           name: 1,
           distance_km: 1,
+          coordinates: "$location.coordinates", // ✅ Include pharmacy coordinates
           "address.city": 1,
-          "address.state": 1
-        }
-      }
+          "address.state": 1,
+        },
+      },
     ]);
 
     // 4️⃣ Merge pharmacy + medicine data
-    const results = pharmacies.map(pharma => {
-      const med = medicines.find(m => m.pharmacy_id === pharma.pharmacy_id);
+    const results = pharmacies.map((pharma) => {
+      const med = medicines.find((m) => m.pharmacy_id === pharma.pharmacy_id);
       return {
         pharmacy_id: pharma.pharmacy_id,
         name: pharma.name,
@@ -49,9 +50,11 @@ export const findPharmaciesNearby = async (medicine_name, latitude, longitude) =
         stock: med?.stock || 0,
         expiry_date: med?.expiry_date,
         city: pharma.address.city,
-        state: pharma.address.state
+        state: pharma.address.state,
+        coordinates: pharma.coordinates || [], // ✅ Ensure coordinates are passed to frontend
       };
     });
+console.log("✅ Nearby pharmacy results:", results);
 
     return results;
   } catch (err) {
