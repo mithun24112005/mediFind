@@ -1,8 +1,9 @@
 # pharmacy_api.py
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import os
 import logging
 import sys
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 # Configure logging to show in console
 logging.basicConfig(
@@ -15,7 +16,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-# Allow all origins for testing
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/health', methods=['GET'])
@@ -150,9 +150,9 @@ def method_not_allowed(error):
 
 if __name__ == '__main__':
     try:
-        logger.info("🚀 Starting ML API on http://127.0.0.1:5001")
-        # Change host to '0.0.0.0' to allow external connections
-        app.run(host="0.0.0.0", port=5001, debug=True)
+        port = int(os.environ.get("PORT", 5001))
+        logger.info(f"🚀 Starting ML API on http://0.0.0.0:{port}")
+        app.run(host="0.0.0.0", port=port, debug=True)
     except Exception as e:
         logger.error(f"Failed to start server: {e}")
         sys.exit(1)

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const ML_API_URL = "http://127.0.0.1:5001";
+const ML_API_URL = process.env.ML_API_URL || "http://127.0.0.1:5001";
 const ML_TIMEOUT = 10000; // 10 seconds
 
 export const getMLScores = async (pharmacies) => {
