@@ -6,11 +6,18 @@ import {
   Pill,
   Upload,
   Loader2,
-  Pill as PillIcon,
+  MapPin,
+  Filter,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Badge } from "./ui/badge";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { NoResults } from "./NoResults";
@@ -25,8 +32,9 @@ export function UserInterface() {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingAlternates, setIsLoadingAlternates] = useState(false);
   const [alternates, setAlternates] = useState([]);
+  const [sortOption, setSortOption] = useState("ai_score");
 
-  // 🔍 Search main medicine
+  // 🔍 Main search logic
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       alert("Please enter a medicine name");
@@ -63,6 +71,7 @@ export function UserInterface() {
           });
 
           const data = await res.json();
+          console.log("✅ Search Results:", data);
 
           if (data && Array.isArray(data.pharmacies) && data.pharmacies.length > 0) {
             const formatted = data.pharmacies.map((p) => ({
@@ -83,7 +92,7 @@ export function UserInterface() {
           setIsSearching(false);
           setHasSearched(true);
 
-          // 🧠 Automatically fetch substitutes
+          // 🧠 Automatically get AI-based substitutes
           handleGetAlternates(searchQuery);
         },
         (err) => {
@@ -119,9 +128,9 @@ export function UserInterface() {
         const cleaned = data.alternatives
           .map((a: string) =>
             a
-              .replace(/[`"']/g, "") // remove quotes and backticks
-              .replace(/json/gi, "") // remove "json"
-              .replace(/\{|\}|\[|\]/g, "") // remove braces/brackets
+              .replace(/[`"']/g, "")
+              .replace(/json/gi, "")
+              .replace(/\{|\}|\[|\]/g, "")
               .trim()
           )
           .filter((a: string) => a.length > 0);
@@ -137,7 +146,7 @@ export function UserInterface() {
     }
   };
 
-  // 📸 OCR Upload
+  // 📸 OCR Upload (Prescription)
   const handleUploadPrescription = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -176,16 +185,29 @@ export function UserInterface() {
     input.click();
   };
 
+  // 🧮 Sorting logic
+  const sortPharmacies = (option: string) => {
+    let sorted = [...pharmacies];
+
+    if (option === "price") sorted.sort((a, b) => a.price - b.price);
+    else if (option === "stock") sorted.sort((a, b) => b.stock - a.stock);
+    else if (option === "distance") sorted.sort((a, b) => a.distance_km - b.distance_km);
+    else if (option === "ai_score") sorted.sort((a, b) => b.ai_score - a.ai_score);
+
+    setPharmacies(sorted);
+    setSortOption(option);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div className="min-h-screen">
       {/* Navbar */}
-      <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-emerald-100 dark:border-gray-800 sticky top-0 z-40 shadow-sm">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-emerald-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center h-16">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
               <Pill className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
+            <span className="text-2xl bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
               MediFind
             </span>
           </div>
@@ -195,17 +217,17 @@ export function UserInterface() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Search Section */}
-        <Card className="mb-8 border-emerald-200 dark:border-gray-700 shadow-lg bg-white/80 dark:bg-gray-800/80">
+        <Card className="mb-8 border-emerald-200 shadow-lg bg-white/80">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
                   placeholder="Enter medicine name (or upload prescription)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-10 h-12 border-emerald-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-50 focus:border-emerald-500 dark:focus:border-emerald-500"
+                  className="pl-10 h-12 border-emerald-200 focus:border-emerald-500"
                 />
               </div>
 
@@ -214,11 +236,7 @@ export function UserInterface() {
                 disabled={isSearching}
                 className="h-12 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg"
               >
-                {isSearching ? (
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                ) : (
-                  <Search className="h-5 w-5 mr-2" />
-                )}
+                {isSearching ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Search className="h-5 w-5 mr-2" />}
                 Search
               </Button>
 
@@ -226,13 +244,9 @@ export function UserInterface() {
                 onClick={handleUploadPrescription}
                 disabled={isUploading}
                 variant="outline"
-                className="h-12 border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-500 dark:hover:bg-gray-800"
+                className="h-12 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
               >
-                {isUploading ? (
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="h-5 w-5 mr-2" />
-                )}
+                {isUploading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Upload className="h-5 w-5 mr-2" />}
                 {isUploading ? "Processing..." : "Upload Prescription"}
               </Button>
             </div>
@@ -242,103 +256,135 @@ export function UserInterface() {
         {isSearching && <LoadingSpinner />}
 
         {showResults && hasSearched && !isSearching && (
-          <div className="space-y-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              {userLocation && pharmacies.length > 0 && (
-                <div className="lg:sticky lg:top-24">
-                  <MapView userLocation={userLocation} pharmacies={pharmacies} />
-                </div>
-              )}
+          <>
+            {userLocation && pharmacies.length > 0 && <MapView userLocation={userLocation} pharmacies={pharmacies} />}
 
-              {/* Available Pharmacies */}
-              <div className="space-y-4">
-                <h3 className="text-emerald-700 dark:text-emerald-400 flex items-center gap-2 text-xl font-semibold">
-                  <TrendingUp className="h-5 w-5" />
-                  Available Pharmacies
+            {/* 🧮 Available Pharmacies Section */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-emerald-700 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" /> Available Pharmacies
                 </h3>
-                <div className="space-y-3">
-                  {pharmacies.map((pharmacy, i) => (
-                    <Card key={i} className="border border-emerald-200 dark:border-gray-700 dark:bg-gray-800 shadow-sm hover:shadow-md transition">
-                      <CardContent className="p-4 flex justify-between items-center">
-                        <div>
-                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{pharmacy.name}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{pharmacy.address}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{pharmacy.distance_km} km away</p>
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-4">
-                          <div className="text-xl text-emerald-600 dark:text-emerald-400 font-semibold">₹{pharmacy.price}</div>
-                          {pharmacy.inStock ? (
-                            <Badge className="bg-emerald-100 text-emerald-700 mt-1">In Stock</Badge>
-                          ) : (
-                            <Badge className="bg-red-100 text-red-700 mt-1">Out of Stock</Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                {/* ✅ Filter Dropdown */}
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-emerald-600" />
+                  <select
+                    value={sortOption}
+                    onChange={(e) => sortPharmacies(e.target.value)}
+                    className="border border-emerald-300 rounded-md p-2 text-sm focus:ring-emerald-500 bg-white"
+                  >
+                    <option value="ai_score">AI Score (Default)</option>
+                    <option value="price">Price</option>
+                    <option value="stock">Availability</option>
+                    <option value="distance">Distance</option>
+                  </select>
                 </div>
+              </div>
+
+              {/* Pharmacy Cards */}
+              <div className="space-y-3">
+                {pharmacies.map((pharmacy, i) => (
+                  <Card
+                    key={i}
+                    className="border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200"
+                  >
+                    <CardContent className="p-4 flex justify-between items-center">
+                      <div>
+                        <h4 className="font-semibold text-lg">{pharmacy.name}</h4>
+                        <p className="text-sm text-gray-600">{pharmacy.address}</p>
+                        <p className="text-sm text-gray-500">{pharmacy.distance_km} km away</p>
+                      </div>
+
+                      <div className="text-right flex flex-col items-end gap-2">
+                        <div className="text-xl text-emerald-600 font-semibold">₹{pharmacy.price}</div>
+                        {pharmacy.inStock ? (
+                          <Badge className="bg-emerald-100 text-emerald-700">In Stock</Badge>
+                        ) : (
+                          <Badge className="bg-red-100 text-red-700">Out of Stock</Badge>
+                        )}
+
+                        {/* 🗺️ Directions */}
+                        {pharmacy.coordinates && pharmacy.coordinates.length === 2 && userLocation && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-1 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => {
+                              const [lng, lat] = pharmacy.coordinates;
+                              const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${lat},${lng}`;
+                              window.open(mapsUrl, "_blank");
+                            }}
+                          >
+                            <MapPin className="h-4 w-4 mr-1" /> Directions
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
 
-            {/* Substitute Suggestions */}
-            <div className="mt-16">
-              <Card className="border-emerald-200 dark:border-gray-700 dark:bg-gray-800 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                    <PillIcon className="h-5 w-5" />
-                    Substitute Suggestions
-                  </CardTitle>
-                  <CardDescription className="dark:text-gray-400">
-                    AI-generated alternatives with similar composition
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingAlternates ? (
-                    <div className="text-center py-6 text-gray-500">Loading alternatives...</div>
-                  ) : alternates.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {alternates.map((alt, i) => (
-                        <Card
-                          key={i}
-                          className="border-emerald-200 dark:border-gray-700 bg-gradient-to-br from-white to-emerald-50 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transition-all"
-                        >
-                          <CardContent className="p-4 flex flex-col items-start justify-between h-full">
-                            <Badge className="mb-3 bg-teal-100 text-teal-700 border-0">
-                              Substitute
-                            </Badge>
-                            <h4 className="text-gray-900 dark:text-gray-100 font-semibold mb-2">{alt}</h4>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="mt-auto border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-500 dark:hover:bg-gray-600"
-                              onClick={() => {
-                                setSearchQuery(alt);
-                                handleSearch();
-                              }}
-                            >
-                              Search
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500 dark:text-gray-400 py-6">
-                      No AI suggestions available
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+            {/* 🧠 Substitute Suggestions */}
+            <Card className="mt-10 border-emerald-200 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-emerald-700">
+                  <Pill className="h-5 w-5" />
+                  Substitute Suggestions
+                </CardTitle>
+                <CardDescription>
+                  AI-generated alternatives with similar composition
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingAlternates ? (
+                  <div className="text-center py-6 text-gray-500">
+                    Loading alternatives...
+                  </div>
+                ) : alternates.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {alternates.map((alt, i) => (
+                      <Card
+                        key={i}
+                        className="border-emerald-200 bg-gradient-to-br from-white to-emerald-50 hover:shadow-lg transition-all"
+                      >
+                        <CardContent className="p-4 flex flex-col items-start justify-between h-full">
+                          <Badge className="mb-3 bg-teal-100 text-teal-700 border-0">
+                            Substitute
+                          </Badge>
+                          <h4 className="text-gray-900 font-semibold mb-2">{alt}</h4>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-auto border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => {
+                              setSearchQuery(alt);
+                              handleSearch();
+                            }}
+                          >
+                            Search
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-6">
+                    No AI suggestions available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
 
         {!showResults && hasSearched && !isSearching && <NoResults />}
       </div>
 
-      {/* Footer */}
-      <footer className="bg-white/80 dark:bg-gray-900/80 border-t border-emerald-100 dark:border-gray-800 mt-16 py-6 text-center text-gray-600 dark:text-gray-400">
-        Powered by <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Impact-X</span> ⚡
+      <footer className="bg-white/80 border-t border-emerald-100 mt-16 py-6 text-center text-gray-600">
+        Powered by{" "}
+        <span className="text-emerald-600 font-semibold">Impact-X</span> ⚡
       </footer>
     </div>
   );
