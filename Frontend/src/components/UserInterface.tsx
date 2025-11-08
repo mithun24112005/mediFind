@@ -293,7 +293,7 @@ export function UserInterface() {
                       <div>
                         <h4 className="font-semibold text-lg">{pharmacy.name}</h4>
                         <p className="text-sm text-gray-600">{pharmacy.address}</p>
-                        <p className="text-sm text-gray-500">{pharmacy.distance_km} km away</p>
+                        <p className="text-sm text-gray-500">{pharmacy.distance_km.toFixed(2)} km away</p>
                       </div>
 
                       <div className="text-right flex flex-col items-end gap-2">
