@@ -1,166 +1,107 @@
 import json
 import pickle
 import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
-def normalize_feature(values, reverse=False):
+def create_ml_model(pharmacies):
     """
-    Normalize features to 0-1 scale
-    If reverse=True, lower values are better (like distance, price)
-    """
-    min_val = min(values)
-    max_val = max(values)
-    
-    if min_val == max_val:
-        return [1.0] * len(values)
-    
-    normalized = []
-    for value in values:
-        if reverse:
-            # For distance and price: lower is better
-            norm_val = (max_val - value) / (max_val - min_val)
-        else:
-            # For stock: higher is better
-            norm_val = (value - min_val) / (max_val - min_val)
-        normalized.append(norm_val)
-    
-    return normalized
-
-def calculate_pharmacy_scores(pharmacies):
-    """
-    Calculate scores for each pharmacy based on:
-    - Distance: 60% weight (lower is better)
-    - Price: 28% weight (lower is better) 
-    - Stock: 12% weight (higher is better)
+    Create a simple ML model using Linear Regression
     """
     # Extract features
-    distances = [p['distance_km'] for p in pharmacies]
-    prices = [p['price'] for p in pharmacies]
-    stocks = [p['stock'] for p in pharmacies]
+    distances = np.array([p['distance_km'] for p in pharmacies]).reshape(-1, 1)
+    prices = np.array([p['price'] for p in pharmacies]).reshape(-1, 1)
+    stocks = np.array([p['stock'] for p in pharmacies]).reshape(-1, 1)
     
-    # Normalize features
-    norm_distances = normalize_feature(distances, reverse=True)  # Lower distance = better
-    norm_prices = normalize_feature(prices, reverse=True)       # Lower price = better
-    norm_stocks = normalize_feature(stocks, reverse=False)      # Higher stock = better
+    # Combine features
+    X = np.column_stack([distances, prices, stocks])
     
-    # Calculate weighted scores
-    weights = {
-        'distance': 0.60,  # 70%
-        'price': 0.28,     # 20%
-        'stock': 0.12      # 10%
+    # Create target scores based on your business rules
+    # Normalize features for target calculation
+    def normalize_for_target(values, reverse=False):
+        min_val = np.min(values)
+        max_val = np.max(values)
+        if min_val == max_val:
+            return np.ones_like(values)
+        if reverse:
+            return (max_val - values) / (max_val - min_val)
+        else:
+            return (values - min_val) / (max_val - min_val)
+    
+    # Calculate target scores using your weights
+    norm_distances = normalize_for_target(distances, reverse=True)  # Lower distance = better
+    norm_prices = normalize_for_target(prices, reverse=True)       # Lower price = better
+    norm_stocks = normalize_for_target(stocks, reverse=False)      # Higher stock = better
+    
+    # Apply your weights to create target variable
+    y = (norm_distances * 0.70 + norm_prices * 0.20 + norm_stocks * 0.10).flatten()
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    # Train linear regression model
+    model = LinearRegression()
+    model.fit(X_scaled, y)
+    
+    # Create model package
+    ml_model = {
+        'model': model,
+        'scaler': scaler,
+        'feature_means': scaler.mean_.tolist(),
+        'feature_stds': scaler.scale_.tolist(),
+        'feature_names': ['distance_km', 'price', 'stock']
     }
     
-    scores = []
-    for i in range(len(pharmacies)):
-        score = (norm_distances[i] * weights['distance'] + 
-                norm_prices[i] * weights['price'] + 
-                norm_stocks[i] * weights['stock'])
-        scores.append(score)
-    
-    return scores
+    return ml_model
 
-def sort_pharmacies_by_score(pharmacies, scores):
+def predict_scores(pharmacies, ml_model):
     """
-    Sort pharmacies by their calculated scores in descending order
+    Use the trained ML model to predict scores
     """
-    # Combine pharmacies with their scores
-    pharmacy_scores = list(zip(pharmacies, scores))
+    # Extract features
+    features = []
+    pharmacy_ids = []
     
-    # Sort by score (descending order)
-    sorted_pharmacies = sorted(pharmacy_scores, key=lambda x: x[1], reverse=True)
+    for pharmacy in pharmacies:
+        features.append([
+            pharmacy['distance_km'],
+            pharmacy['price'], 
+            pharmacy['stock']
+        ])
+        pharmacy_ids.append(pharmacy['pharmacy_id'])
     
-    return sorted_pharmacies
+    # Convert to numpy array
+    X = np.array(features)
+    
+    # Scale features using the trained scaler
+    X_scaled = (X - ml_model['feature_means']) / ml_model['feature_stds']
+    
+    # Predict scores
+    scores = ml_model['model'].predict(X_scaled)
+    
+    # Combine with pharmacy IDs
+    results = list(zip(pharmacy_ids, scores))
+    
+    return results
 
-def create_ranking_model(pharmacies):
+def save_ml_model(ml_model, filename="pharmacy_ml_model.pkl"):
     """
-    Create a simple ranking model that stores the weights and normalization parameters
-    """
-    # Store the weights
-    model = {
-        'weights': {
-            'distance': 0.60,
-            'price': 0.28,
-            'stock': 0.12
-        },
-        'feature_ranges': {}
-    }
-    
-    # Calculate and store feature ranges for normalization
-    distances = [p['distance_km'] for p in pharmacies]
-    prices = [p['price'] for p in pharmacies]
-    stocks = [p['stock'] for p in pharmacies]
-    
-    model['feature_ranges']['distance'] = {'min': min(distances), 'max': max(distances)}
-    model['feature_ranges']['price'] = {'min': min(prices), 'max': max(prices)}
-    model['feature_ranges']['stock'] = {'min': min(stocks), 'max': max(stocks)}
-    
-    return model
-
-def save_model(model, filename="pharmacy_ranking_model.pkl"):
-    """
-    Save the trained model to a pickle file
+    Save the trained ML model to a pickle file
     """
     with open(filename, 'wb') as f:
-        pickle.dump(model, f)
+        pickle.dump(ml_model, f)
     
-    print(f"Model saved to {filename}")
+    print(f"ML Model saved to {filename}")
 
-def load_model(filename="pharmacy_ranking_model.pkl"):
+def load_ml_model(filename="pharmacy_ml_model.pkl"):
     """
-    Load the trained model from a pickle file
+    Load the trained ML model from a pickle file
     """
     with open(filename, 'rb') as f:
-        model = pickle.load(f)
+        ml_model = pickle.load(f)
     
-    return model
-
-def predict_ranking(pharmacies, model):
-    """
-    Use the trained model to rank pharmacies
-    """
-    def normalize_value(value, min_val, max_val, reverse=False):
-        if min_val == max_val:
-            return 1.0
-        if reverse:
-            return (max_val - value) / (max_val - min_val)
-        else:
-            return (value - min_val) / (max_val - min_val)
-    
-    scores = []
-    for pharmacy in pharmacies:
-        # Normalize each feature using stored ranges
-        norm_distance = normalize_value(
-            pharmacy['distance_km'], 
-            model['feature_ranges']['distance']['min'],
-            model['feature_ranges']['distance']['max'],
-            reverse=True
-        )
-        
-        norm_price = normalize_value(
-            pharmacy['price'],
-            model['feature_ranges']['price']['min'],
-            model['feature_ranges']['price']['max'],
-            reverse=True
-        )
-        
-        norm_stock = normalize_value(
-            pharmacy['stock'],
-            model['feature_ranges']['stock']['min'],
-            model['feature_ranges']['stock']['max'],
-            reverse=False
-        )
-        
-        # Calculate weighted score
-        score = (norm_distance * model['weights']['distance'] + 
-                norm_price * model['weights']['price'] + 
-                norm_stock * model['weights']['stock'])
-        
-        scores.append(score)
-    
-    # Sort pharmacies by score
-    pharmacy_scores = list(zip(pharmacies, scores))
-    sorted_pharmacies = sorted(pharmacy_scores, key=lambda x: x[1], reverse=True)
-    
-    return sorted_pharmacies
+    return ml_model
 
 def main():
     # Load the dataset
@@ -173,23 +114,32 @@ def main():
     
     print(f"Loaded {len(pharmacies)} pharmacies")
     
-    # Train the model
-    model = create_ranking_model(pharmacies)
+    # Train the ML model
+    print("Training ML model...")
+    ml_model = create_ml_model(pharmacies)
     
     # Save the model
-    save_model(model)
+    save_ml_model(ml_model)
     
     # Test the model
-    print("\nTesting the model with first 10 pharmacies:")
-    ranked_pharmacies = predict_ranking(pharmacies[:10], model)
+    print("\nTesting the ML model with first 10 pharmacies:")
+    results = predict_scores(pharmacies[:10], ml_model)
     
-    print("\nTop 5 ranked pharmacies:")
-    for i, (pharmacy, score) in enumerate(ranked_pharmacies[:5]):
-        print(f"{i+1}. ID: {pharmacy['pharmacy_id']}, "
+    # Sort by score
+    sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
+    
+    print("\nTop 5 ranked pharmacies (ML Model):")
+    for i, (pharmacy_id, score) in enumerate(sorted_results[:5]):
+        pharmacy = next(p for p in pharmacies[:10] if p['pharmacy_id'] == pharmacy_id)
+        print(f"{i+1}. ID: {pharmacy_id}, "
               f"Distance: {pharmacy['distance_km']}km, "
               f"Price: ₹{pharmacy['price']}, "
               f"Stock: {pharmacy['stock']}, "
               f"Score: {score:.4f}")
+    
+    # Show model coefficients
+    print(f"\nModel Coefficients: {ml_model['model'].coef_}")
+    print(f"Model Intercept: {ml_model['model'].intercept_:.4f}")
 
 if __name__ == "__main__":
     main()
