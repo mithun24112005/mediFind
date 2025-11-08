@@ -167,12 +167,12 @@ export function UserInterface() {
         });
 
         const data = await res.json();
-        const probable = data.probable_medicines?.[0];
-        if (probable) {
-          setSearchQuery(probable);
-          alert(`🧠 Detected medicine: ${probable}`);
+        const extractedText = data.text;
+        if (extractedText && extractedText.trim()) {
+          setSearchQuery(extractedText.trim().split("\n")[0]); // Use the first line as the query
+          alert(`🧠 Detected text. Searching for: ${extractedText.trim().split("\n")[0]}`);
         } else {
-          alert("No recognizable medicine found in prescription.");
+          alert("No recognizable text found in the prescription.");
         }
       } catch (err) {
         console.error("❌ OCR upload failed:", err);

@@ -94,7 +94,7 @@ class SimplePharmacyScorer:
             }
         }
         joblib.dump(model_data, filename)
-        print(f"✅ Model saved as {filename}")
+        print(f"Model saved as {filename}")
 
 def load_simple_model(filename='simple_pharmacy_scorer.pkl'):
     """Load the simple model"""
@@ -107,14 +107,14 @@ def load_simple_model(filename='simple_pharmacy_scorer.pkl'):
         )
         return scorer
     except FileNotFoundError:
-        print("❌ Model file not found. Creating new model...")
+        print(" Model file not found. Creating new model...")
         return SimplePharmacyScorer()
 
 def test_scoring():
     """Test the scoring system with various examples"""
     scorer = SimplePharmacyScorer()
     
-    print("🧪 TESTING PHARMACY SCORING SYSTEM")
+    print(" TESTING PHARMACY SCORING SYSTEM")
     print("=" * 60)
     
     test_cases = [
@@ -186,14 +186,14 @@ def test_scoring():
     for test in test_cases:
         result = scorer.calculate_score(test['data'])
         
-        print(f"\n📊 {test['name']}")
+        print(f"\n {test['name']}")
         print(f"   Input: {test['data']['distance_km']}km, ₹{test['data']['price']}, {test['data']['stock']} units")
-        print(f"   🎯 Final Score: {result['final_score']:.4f}")
+        print(f"    Final Score: {result['final_score']:.4f}")
         
         # Show component breakdown
-        print(f"   📍 Distance: {result['components']['distance']:.3f} (contribution: {result['contributions']['distance']:.3f})")
-        print(f"   💰 Price: {result['components']['price']:.3f} (contribution: {result['contributions']['price']:.3f})")
-        print(f"   📦 Availability: {result['components']['availability']:.3f} (contribution: {result['contributions']['availability']:.3f})")
+        print(f"    Distance: {result['components']['distance']:.3f} (contribution: {result['contributions']['distance']:.3f})")
+        print(f"    Price: {result['components']['price']:.3f} (contribution: {result['contributions']['price']:.3f})")
+        print(f"    Availability: {result['components']['availability']:.3f} (contribution: {result['contributions']['availability']:.3f})")
         
         # Show rating
         score = result['final_score']
@@ -207,13 +207,13 @@ def test_scoring():
             rating = "⭐⭐ BELOW AVERAGE"
         else:
             rating = "⭐ POOR"
-        print(f"   📈 Rating: {rating}")
+        print(f"  Rating: {rating}")
 
 def interactive_scorer():
     """Interactive version for user input"""
     scorer = SimplePharmacyScorer()
     
-    print("🏥 SIMPLE PHARMACY SCORING SYSTEM")
+    print(" SIMPLE PHARMACY SCORING SYSTEM")
     print("=" * 50)
     print("Priority: Distance (50%) > Price (30%) > Availability (20%)")
     print("=" * 50)
@@ -221,11 +221,11 @@ def interactive_scorer():
     while True:
         print("\nEnter pharmacy details:")
         try:
-            distance = float(input("📍 Distance in km: "))
-            price = float(input("💰 Price (₹): "))
-            stock = int(input("📦 Stock quantity: "))
+            distance = float(input(" Distance in km: "))
+            price = float(input(" Price (₹): "))
+            stock = int(input(" Stock quantity: "))
             
-            print("📅 Enter expiry date:")
+            print(" Enter expiry date:")
             year = int(input("   Year (e.g., 2025): "))
             month = int(input("   Month (1-12): "))
             day = int(input("   Day (1-31): "))
@@ -242,13 +242,13 @@ def interactive_scorer():
             score = result['final_score']
             
             print("\n" + "=" * 50)
-            print("📊 SCORING RESULTS")
+            print(" SCORING RESULTS")
             print("=" * 50)
-            print(f"📍 Distance: {distance} km")
-            print(f"💰 Price: ₹{price}")
-            print(f"📦 Stock: {stock} units")
-            print(f"📅 Expiry: {expiry_date}")
-            print(f"\n🎯 FINAL SCORE: {score:.4f}")
+            print(f" Distance: {distance} km")
+            print(f" Price: ₹{price}")
+            print(f" Stock: {stock} units")
+            print(f" Expiry: {expiry_date}")
+            print(f"\n FINAL SCORE: {score:.4f}")
             
             # Show rating
             if score >= 0.8:
@@ -267,25 +267,25 @@ def interactive_scorer():
                 rating = "⭐ POOR"
                 rec = "Avoid if possible"
             
-            print(f"📈 Rating: {rating}")
-            print(f"💡 Recommendation: {rec}")
+            print(f" Rating: {rating}")
+            print(f"Recommendation: {rec}")
             
             # Show contributions
-            print(f"\n🔍 Score Breakdown:")
+            print(f"\n Score Breakdown:")
             print(f"   Distance contribution: {result['contributions']['distance']:.3f}")
             print(f"   Price contribution: {result['contributions']['price']:.3f}")
             print(f"   Availability contribution: {result['contributions']['availability']:.3f}")
             
             print("\n" + "=" * 50)
-            continue_choice = input("\n🔍 Score another pharmacy? (y/n): ").lower().strip()
+            continue_choice = input("\n Score another pharmacy? (y/n): ").lower().strip()
             if continue_choice != 'y':
-                print("👋 Thank you for using the Pharmacy Scoring System!")
+                print("Thank you for using the Pharmacy Scoring System!")
                 break
                 
         except ValueError:
-            print("❌ Please enter valid numbers!")
+            print(" Please enter valid numbers!")
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f" Error: {e}")
 
 if __name__ == "__main__":
     # First test the system
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     scorer.save_model('simple_pharmacy_scorer.pkl')
     
     print("\n" + "=" * 60)
-    print("🚀 Starting Interactive Mode...")
+    print(" Starting Interactive Mode...")
     print("=" * 60)
     
     # Start interactive mode
